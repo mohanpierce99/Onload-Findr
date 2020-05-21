@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    
+    <h4 class="head"></h4>
+    <h4>Messages : Peer to peer chat</h4>
+    <input type="text">
+    <button>Send</button>
+    <span id="conn">Connected to : </span>
+    <div id="wrapper">
+
+    </div>
+
+    <div id="wrapper1">
+
+    </div>
+
+        <script src="https://unpkg.com/peerjs@1.0.0/dist/peerjs.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var mypeers = [];
+        var room;
+        var myid;
+        var socket = io.connect(window.location.origin);
+        let urlParams1 = new URLSearchParams(window.location.search);
+        let myParam1 = urlParams1.get('roomid');
+
+        socket.on("left",(id)=>{
+            console.log("bropooooooo dead b rrrroooooooo")
+            var deadpeer=mypeers.find(x=>x.peer=id);
+            console.log(deadpeer);
+            deadpeer.close();
+            if(deadpeer.rendered){
+                document.getElementById(id).remove();
+            }
+        });
+
+        socket.on('connect', () => {
+                console.log("Connected");
+                socket.emit("joinroom",myParam1);
+                
+                socket.on('userstat',(val)=>{
+                    room=val;
+                    console.log(room);
+                    var peer = new Peer({
+                        path: "/peer",
+                        host:"localhost",
+                        port:3300,
+                        config: {
+                            'iceServers': [{
+                                url: 'stun:stun.l.google.com:19302'
+                            }]
+                        }
+                    }, {
+                        debug: 2
+                    });
+                    peer.on("connection", (c) => {
+                        mypeers.push(c);
+                        console.log(c);
+                        console.log("pushed");
+                        c.on('data', function (data) {
+                            console.log("hit");
+                            console.log(data);
+                        });
+
+                        console.log("gonnna call ==============")
+                        callPeer(c.peer);
+                    });
+                    peer.on('open', (id) => {
+                        console.log("id generated");
+                        peer.id = id;
+                        myid=id;
+                        sel(".head").innerHTML = id;
+                        console.log(id)
+                        socket.emit("signal", {
+                            room,
+                            id
+                        });
+                    });
+
+                    function callPeer(id) {
+                        console.log(id + "call");
+                        var call;
+                        navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                            video:true
+                        }).then((stream) => {
+                            call = peer.call(id, stream);
+                            call.on('stream', (stream) => {
+                                console.log("========")
+                                console.log(mypeers);
+                                console.log(id);
+                                console.log("========")
+                                let selectpeer=mypeers.find(x=>x.peer==id);
+                                if("rendered" in selectpeer){
+                                    return;
+                                }
+                                selectpeer.rendered=true;
+                                console.log("received stream answered");
+                                var video = document.createElement("video");
+                                video.id=id;
+                                video.srcObject = stream;
+                                sel("#wrapper").appendChild(video);
+                                video.play();
+                            });
+
+                        })
+                    }
+                    peer.on('call', function (call) {
+                        console.log("&&&&&&&&&&&&&&");
+                        navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                            video:true
+                        }).then((stream) => {
+                            call.answer(stream);
+                            call.on('stream', function (stream) {
+                                let selectpeer=mypeers.find(x=>x.peer==call.peer);
+                                if("rendered" in selectpeer){
+                                    return;
+                                }
+                                selectpeer.rendered=true;
+                                console.log("+++++++++++++++++++=");
+                                console.log(stream,call);
+                                console.log("received stream");
+                                var video = document.createElement(
+                                    "video");
+                                    video.id=call.peer;
+                                video.srcObject = stream;
+                                console.log("appended");
+                                sel("#wrapper").appendChild(video);
+                                video.play();
+                            });
+                            call.on('close',()=>{
+                                console.log("************");
+                                console.log(arguments);
+                            });
+                        });
+                    });
+                    peer.on('data', function (data) {
+                        console.log("hittedma"+data);
+                    });
+
+
+                    socket.on("signalnewclient", (d) => {
+                        console.log(d + "signalled");
+                        if (d == peer.id) {
+                            console.log("hit oops");
+                            return;
+                        }
+                        var conn = peer.connect(d, {
+                            reliable: true
+                        });
+                        console.log("peer added");
+                        conn.on('open', function () {
+                            console.log("connectedtopeer");
+                            console.log(conn);
+                            mypeers.push(conn);
+                            console.log("pushed to no of peers");
+                            conn.on('data', function (data) {
+                                console.log("hittedma"+data);
+                            });
+                            console.log("destory set")
+
+                        });
+                    });             
+                });           
+        });
+      
+
+        function sel(d) {
+            return document.querySelector(d);
+        }
+
+        function error() {}
+    </script>
+
+</body>
+
+</html>
