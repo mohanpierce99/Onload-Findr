@@ -31,7 +31,6 @@ io.on("connection", (socket) => {
             console.log("error")
             socket.emit("wherror1","nn");
             console.log("errorified")
-
         } else{
             let url =val["url"];
             mapping[whcode] = url;

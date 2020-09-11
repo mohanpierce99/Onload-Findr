@@ -9,7 +9,7 @@
     chatternet_jquery_loading_script.onload = function() {
     
         var frame = $("<iframe/>");
-        frame.attr("src", "https://onload2.surge.sh?roomid=" + chatternet_unique_page_id);
+        frame.attr("src", "https://onload-hackdemo.surge.sh?roomid=" + chatternet_unique_page_id);
         frame.attr("sandbox","allow-forms allow-modals allow-scripts allow-same-origin allow-top-navigation allow-top-navigation-by-user-activation");
         frame.attr("allow","camera;microphone");
     
